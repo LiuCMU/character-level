@@ -11,7 +11,11 @@ import torch
 
 
 def get_sample_weights(labels):
-    counter = Counter(labels)
+    '''
+    For example, input labels = [1, 1, 0], returns [0.5 0.5 1. ]
+    '''
+
+    counter = Counter(labels) # for a list of labels, elements are stored as dictinary keys and their counts are stored as dictionary values
     counter = dict(counter)
     for k in counter:
         counter[k] = 1 / counter[k]
@@ -31,28 +35,28 @@ def load_data(args):
     labels = []
     for df_chunk in tqdm(chunks):
         aux_df = df_chunk.copy()
-        aux_df = aux_df.sample(frac=1)
-        aux_df = aux_df[~aux_df[args.text_column].isnull()]
-        aux_df = aux_df[(aux_df[args.text_column].map(len) > 1)]
+        aux_df = aux_df.sample(frac=1) # return a random sample of the dataframe, used to SCHUFFLE here
+        aux_df = aux_df[~aux_df[args.text_column].isnull()] # removing rows containing no text
+        aux_df = aux_df[(aux_df[args.text_column].map(len) > 1)] # removing rows containing only 1 letter.
         aux_df['processed_text'] = (aux_df[args.text_column]
                                     .map(lambda text: utils.process_text(args.steps, text)))
-        texts += aux_df['processed_text'].tolist()
+        texts += aux_df['processed_text'].tolist() # transform a dataframe column into a list
         labels += aux_df[args.label_column].tolist()
 
-    if bool(args.group_labels):
+    if bool(args.group_labels): #bool(1) == True, bool(0) == False
 
         if bool(args.ignore_center):
 
             label_ignored = args.label_ignored
 
             clean_data = [(text, label) for (text, label) in zip(
-                texts, labels) if label not in [label_ignored]]
+                texts, labels) if label not in [label_ignored]] # ignore some data points if they contain certain labels
 
             texts = [text for (text, label) in clean_data]
             labels = [label for (text, label) in clean_data]
 
         #     labels = list(
-        #         map(lambda l: {1: 0, 2: 0, 4: 1, 5: 1}[l], labels))
+        #         map(lambda l: {1: 0, 2: 0, 4: 1, 5: 1}[l], labels)) # This is not a good method to map labels.
 
         # else:
         #     labels = list(
@@ -69,7 +73,8 @@ def load_data(args):
         balanced_texts = []
 
         for key in keys: 
-            balanced_texts += [text for text, label in zip(texts, labels) if label == key][:int(args.ratio * count_minority)]
+            balanced_texts += [text for text, label in zip(texts, labels) if label == key][:int(args.ratio * count_minority)] #slicing is a good
+            # to keep balanced labels. It's worth learning.
             balanced_labels += [label for text, label in zip(texts, labels) if label == key][:int(args.ratio * count_minority)] 
 
         texts = balanced_texts
@@ -97,7 +102,8 @@ class MyDataset(Dataset):
             len(args.extra_characters)
         self.max_length = args.max_length
         self.preprocessing_steps = args.steps
-        self.identity_mat = np.identity(self.number_of_characters)
+        self.identity_mat = np.identity(self.number_of_characters) # identity array is an array with ones in diaganol and zeros elsewhere.
+        # Input is the #rows = # columns
 
     def __len__(self):
         return self.length
@@ -106,7 +112,7 @@ class MyDataset(Dataset):
         raw_text = self.texts[index]
 
         data = np.array([self.identity_mat[self.vocabulary.index(i)] for i in list(raw_text)[::-1] if i in self.vocabulary],
-                        dtype=np.float32)
+                        dtype=np.float32)                  # -1 denotes starting from the end to beginning when looping string
         if len(data) > self.max_length:
             data = data[:self.max_length]
         elif 0 < len(data) < self.max_length:
