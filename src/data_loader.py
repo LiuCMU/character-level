@@ -103,7 +103,9 @@ class MyDataset(Dataset):
         self.max_length = args.max_length
         self.preprocessing_steps = args.steps
         self.identity_mat = np.identity(self.number_of_characters) # identity array is an array with ones in diaganol and zeros elsewhere.
-        # Input is the #rows = # columns
+        # Input is the #rows (which is equal to # columns because it's a square.
+        # This square array is similar to my mapping dictinary for each character. There are 70 rows, each is a unique one-hot encoding for
+        # a character.
 
     def __len__(self):
         return self.length
