@@ -192,13 +192,14 @@ def evaluate(model, validation_generator, criterion, epoch, writer, log_file, pr
 
 
 def run(args, both_cases=False):
-
+    # clean previous log files
     if args.flush_history == 1:
         objects = os.listdir(args.log_path)
         for f in objects:
             if os.path.isdir(args.log_path + f):
-                shutil.rmtree(args.log_path + f)
+                shutil.rmtree(args.log_path + f) # seems to be flushig previous log history
 
+    # prepare new log file directory
     now = datetime.now()
     logdir = args.log_path + now.strftime("%Y%m%d-%H%M%S") + "/"
     os.makedirs(logdir)
@@ -231,7 +232,7 @@ def run(args, both_cases=False):
     training_set = MyDataset(train_texts, train_labels, args)
     validation_set = MyDataset(val_texts, val_labels, args)
 
-    if bool(args.use_sampler):
+    if bool(args.use_sampler): # default: False
         train_sample_weights = torch.from_numpy(train_sample_weights)
         sampler = WeightedRandomSampler(train_sample_weights.type(
             'torch.DoubleTensor'), len(train_sample_weights))
@@ -243,10 +244,10 @@ def run(args, both_cases=False):
 
     model = CharacterLevelCNN(args, number_of_classes)
     if torch.cuda.is_available():
-        model.cuda()
+        model.cuda() # I forgot this before. BOTH dataset and model should be in cuda!
 
-    if not bool(args.focal_loss):
-        if bool(args.class_weights):
+    if not bool(args.focal_loss): #It's true by default
+        if bool(args.class_weights): #default False
             class_counts = dict(Counter(train_labels))
             m = max(class_counts.values())
             for c in class_counts:
@@ -270,7 +271,7 @@ def run(args, both_cases=False):
             criterion = FocalLoss(gamma=args.gamma,
                                   alpha=[args.alpha] * number_of_classes)
 
-    if args.optimizer == 'sgd':
+    if args.optimizer == 'sgd': # default: sgd
         if args.scheduler == 'clr':
             optimizer = torch.optim.SGD(
                 model.parameters(), lr=1, momentum=0.9, weight_decay=0.00001
